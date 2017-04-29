@@ -28,6 +28,10 @@ int chipSelectPin1=10;
 int chipSelectPin2=9;
 int chipSelectPin3=8;
 
+long encoder1Value = 0;
+long encoder2Value = 0;
+long encoder3Value = 0;
+
 void setup() 
 {
   attachInterrupt(digitalPinToInterrupt(countPin),counter,FALLING);
@@ -40,7 +44,7 @@ void setup()
   pinMode(pulseSender,OUTPUT);
   //digitalWrite(pulseSender,LOW);
   pinMode(SIGNPIN,OUTPUT);
-  digitalWrite(SIGNPIN,LOW);
+  digitalWrite(SIGNPIN,HIGH);
 
   //encoder shield pins
   pinMode(chipSelectPin1, OUTPUT);
@@ -105,30 +109,57 @@ void loop()
 
 void pulse(int a) //send pulses to pulseSender
 {
+  long *prevEncoderVal;
+  long currEncoderVal;
+  switch(pulsePin)
+  {
+    case 4:
+    prevEncoderVal = &encoder1Value;
+    break;
+
+    case 5:
+    prevEncoderVal = &encoder2Value;
+    break;
+
+    case 6:
+    prevEncoderVal = &encoder3Value;
+    break;
+  }
+  
   pinMode(pulsePin,HIGH);
   if(a<0)
   {
-    digitalWrite(SIGNPIN,HIGH);
+    digitalWrite(SIGNPIN,LOW);
     a = a*(-1);
     Serial.print("In sign statement: ");
     Serial.println(a);
   }
   else
   {
-    digitalWrite(SIGNPIN,LOW);
+    digitalWrite(SIGNPIN,HIGH);
     Serial.println("Positive:"+a);
   }
-  for(int i = 0;i<a;i++)
+
+  currEncoderVal = getEncoderValue(pulsePin-3);
+  long diff = currEncoderVal-*prevEncoderVal;
+  while(diff<a)
   {
-    //Serial.println(i);
-    digitalWrite(pulseSender,LOW);
-    delay(pulseWidth);
-    digitalWrite(pulseSender,HIGH);
-    delay(pulseWidth);
+    for(long i = diff;i<a;i++)
+    {
+      //Serial.println(i);
+      digitalWrite(pulseSender,LOW);
+      delay(pulseWidth);
+      digitalWrite(pulseSender,HIGH);
+      delay(pulseWidth);
+    }
+    currEncoderVal = getEncoderValue(pulsePin-3);
+    diff = currEncoderVal-*prevEncoderVal;
+    
   }
   //digitalWrite(pulseSender,LOW);
   pinMode(pulsePin,LOW);
   Serial.println(count);
+  *prevEncoderVal = currEncoderVal;
 }
 
 void blink()
