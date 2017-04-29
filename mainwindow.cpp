@@ -185,7 +185,7 @@ void MainWindow::on_startCounter_clicked()      //only works for R1 right now an
 
     for(int i = 1;i<=points;i++)
     {
-        delay(1000+stepTime);           //delay to ensure arduino's response arrived (could make it a function of pulseWidth)
+        delay(1000+stepTime+stepsPerPoint*5);           //delay to ensure arduino's response arrived (could make it a function of pulseWidth)
         int x = i*stepsPerPoint;
 
         QByteArray yData = arduino->readLine(6);            //read data from arduino line by line
