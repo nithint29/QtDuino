@@ -5,10 +5,12 @@
 #define r3Pin  6
 #define SIGNPIN  7
 
-#define pulseWidth  5
+#define pulseWidth  200
 #define counterMode 'C'
 #define stepperMode 'S'
-#define pulseSender  11
+#define pulseSender  3
+#define bPin 19
+#define onPin 18
 
 int box[3] = {0,0,0};
 int pulsePin = 4;
@@ -36,11 +38,18 @@ void setup()
 {
   attachInterrupt(digitalPinToInterrupt(countPin),counter,FALLING);
   pinMode(digitalPinToInterrupt(countPin), INPUT_PULLUP);
+
+  pinMode(onPin,OUTPUT);
+  digitalWrite(onPin,HIGH);
   
   pinMode(ledPin,OUTPUT);
   pinMode(r1Pin,OUTPUT);
   pinMode(r2Pin,OUTPUT);
   pinMode(r3Pin,OUTPUT);
+  digitalWrite(r1Pin,LOW);
+  digitalWrite(r2Pin,LOW);
+  digitalWrite(r3Pin,LOW);
+  
   pinMode(pulseSender,OUTPUT);
   //digitalWrite(pulseSender,LOW);
   pinMode(SIGNPIN,OUTPUT);
@@ -55,6 +64,7 @@ void setup()
   
   Serial.begin(9600);
   Serial.println("Arduino is ready!");
+  digitalWrite(pulseSender,LOW);
 }
 
 void loop() 
@@ -67,7 +77,7 @@ void loop()
     if(mode == stepperMode)
     {
       pulsePin = Serial.parseInt(); //S: pulse pin
-      pinMode(pulsePin,HIGH); // choose the right box
+      digitalWrite(pulsePin,HIGH); // choose the right box
       in = Serial.parseInt();//S:number of pulses to send out
       if(in != 0 && pulsePin <= 6 && pulsePin >= 4)
       {
@@ -78,13 +88,13 @@ void loop()
         pulse(in);
         mode = 'N';
       }
-      pinMode(pulsePin,LOW); 
+      digitalWrite(pulsePin,LOW); 
     }
 
     else if(mode == counterMode)
     {
       pulsePin = Serial.parseInt();
-      pinMode(pulsePin,HIGH);
+      digitalWrite(pulsePin,HIGH);
       
       stepsPerPoint = Serial.parseInt();
       stepTime = Serial.parseInt();
@@ -99,9 +109,14 @@ void loop()
         delay(stepTime);
         Serial.println(count);
       }
-      pinMode(pulsePin,LOW);
+      digitalWrite(pulsePin,LOW);
       mode = 'N';
       
+    }
+        else if(mode == 'x')
+    {
+      encValues();
+      mode = 'N';
     }
   }
 
@@ -109,24 +124,27 @@ void loop()
 
 void pulse(int a) //send pulses to pulseSender
 {
-  long *prevEncoderVal;
+  int temp = count; 
+  encoder1Value = getEncoderValue(1);
+  long *prevEncoderVal = &encoder1Value;
   long currEncoderVal;
-  switch(pulsePin)
-  {
-    case 4:
-    prevEncoderVal = &encoder1Value;
-    break;
+//  switch(pulsePin)
+//  {
+//    case 4:
+//    prevEncoderVal = &encoder1Value;
+//    break;
+//
+//    case 5:
+//    prevEncoderVal = &encoder1Value;
+//    break;
+//
+//    case 6:
+//    prevEncoderVal = &encoder1Value;
+//    break;
+//  }
 
-    case 5:
-    prevEncoderVal = &encoder2Value;
-    break;
-
-    case 6:
-    prevEncoderVal = &encoder3Value;
-    break;
-  }
-  
-  pinMode(pulsePin,HIGH);
+  Serial.println(a);
+  digitalWrite(pulsePin,HIGH);
   if(a<0)
   {
     digitalWrite(SIGNPIN,LOW);
@@ -139,6 +157,7 @@ void pulse(int a) //send pulses to pulseSender
     digitalWrite(SIGNPIN,HIGH);
     Serial.println("Positive:"+a);
   }
+  
   for(long i = 0;i<a;i++)
   {
     //Serial.println(i);
@@ -147,13 +166,35 @@ void pulse(int a) //send pulses to pulseSender
     digitalWrite(pulseSender,HIGH);
     delay(pulseWidth);
     
-    currEncoderVal = getEncoderValue(pulsePin-3);
-    i = currEncoderVal - *prevEncoderVal -1;
+    currEncoderVal = getEncoderValue(1);
+    Serial.print("Current Value: ");Serial.println(currEncoderVal);
+//    if(currEncoderVal <0)
+//    {
+//      currEncoderVal = -1*currEncoderVal;
+//    }
+    i = abs(abs(currEncoderVal) - abs(*prevEncoderVal)) -1;
   }
+  
   //digitalWrite(pulseSender,LOW);
-  pinMode(pulsePin,LOW);
-  Serial.println(count);
+  digitalWrite(pulsePin,LOW);
+  
+  currEncoderVal = getEncoderValue(1);
   *prevEncoderVal = currEncoderVal;
+  
+  digitalWrite(pulseSender,LOW);
+  encValues();
+
+  count = temp;
+  Serial.print("Count: ");Serial.println(count);
+}
+
+void encValues()
+{
+   encoder1Value = getEncoderValue(1);
+ Serial.print("Encoder1:");Serial.print(getEncoderValue(1));Serial.print(", ");Serial.println(encoder1Value);
+  Serial.print("Encoder2:");Serial.print(getEncoderValue(2));Serial.print(", ");Serial.println(encoder2Value);
+  Serial.print("Encoder3:");Serial.print(getEncoderValue(3));Serial.print(", ");Serial.println(encoder3Value);
+  
 }
 
 void blink()
