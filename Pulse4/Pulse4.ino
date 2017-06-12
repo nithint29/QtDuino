@@ -8,9 +8,12 @@
 #define pulseWidth  100
 #define counterMode 'C'
 #define stepperMode 'S'
-#define pulseSender  3
+#define pulseSender1  8
+#define pulseSender2  9
+#define pulseSender3  10
+#define pulseSender4  11
 #define bPin 19
-#define onPin 11
+#define onPin 3
 
 int box[3] = {0,0,0};
 int pulsePin = 4;
@@ -50,7 +53,11 @@ void setup()
   digitalWrite(r2Pin,LOW);
   digitalWrite(r3Pin,LOW);
   
-  pinMode(pulseSender,OUTPUT);
+  pinMode(pulseSender1,OUTPUT);
+  pinMode(pulseSender2,OUTPUT);
+  pinMode(pulseSender3,OUTPUT);
+  pinMode(pulseSender4,OUTPUT);
+  
   //digitalWrite(pulseSender,LOW);
   pinMode(SIGNPIN,OUTPUT);
   digitalWrite(SIGNPIN,HIGH);
@@ -64,7 +71,10 @@ void setup()
   
   Serial.begin(9600);
   Serial.println("Arduino is ready!");
-  digitalWrite(pulseSender,LOW);
+  digitalWrite(pulseSender1,LOW);
+  digitalWrite(pulseSender2,LOW);
+  digitalWrite(pulseSender3,LOW);
+  digitalWrite(pulseSender4,LOW);
 }
 
 void loop() 
@@ -126,68 +136,41 @@ void loop()
 
 void pulse(int a) //send pulses to pulseSender
 {
-  int temp = count; 
-  encoder1Value = getEncoderValue(1);
-  long *prevEncoderVal = &encoder1Value;
-  long currEncoderVal;
-//  switch(pulsePin)
-//  {
-//    case 4:
-//    prevEncoderVal = &encoder1Value;
-//    break;
-//
-//    case 5:
-//    prevEncoderVal = &encoder1Value;
-//    break;
-//
-//    case 6:
-//    prevEncoderVal = &encoder1Value;
-//    break;
-//  }
-
-  Serial.println(a);
-  digitalWrite(pulsePin,HIGH);
+  int temp = count;
+   //Serial.println(a);
+  //digitalWrite(pulsePin,HIGH);
   if(a<0)
   {
     digitalWrite(SIGNPIN,LOW);
     a = a*(-1);
-    Serial.print("In sign statement: ");
-    Serial.println(a);
+    //Serial.print("In sign statement: ");
+    //Serial.println(a);
   }
   else
   {
     digitalWrite(SIGNPIN,HIGH);
-    Serial.println("Positive:"+a);
+    //Serial.println("Positive:"+a);
   }
   
   for(long i = 0;i<a;i++)
   {
-    //Serial.println(i);
-    digitalWrite(pulseSender,LOW);
+    int index = 8+(i%4);
+    digitalWrite(index,HIGH);
+    //Serial.println(8+(i%4));
+    //Serial.print("count: ");Serial.println(i);
     delay(pulseWidth);
-    digitalWrite(pulseSender,HIGH);
-    delay(pulseWidth);
-    
-    currEncoderVal = getEncoderValue(1);
-    Serial.print("Current Value: ");Serial.println(currEncoderVal);
-//    if(currEncoderVal <0)
-//    {
-//      currEncoderVal = -1*currEncoderVal;
-//    }
-    i = abs(abs(currEncoderVal) - abs(*prevEncoderVal)) -1;
+    digitalWrite(index,LOW);
   }
   
   //digitalWrite(pulseSender,LOW);
   digitalWrite(pulsePin,LOW);
-  
-  currEncoderVal = getEncoderValue(1);
-  *prevEncoderVal = currEncoderVal;
-  
-  digitalWrite(pulseSender,LOW);
-  encValues();
+  digitalWrite(pulseSender1,LOW);
+  digitalWrite(pulseSender2,LOW);
+  digitalWrite(pulseSender3,LOW);
+  digitalWrite(pulseSender4,LOW);
 
   count = temp;
-  Serial.print("Count: ");Serial.println(count);
+
 }
 
 void encValues()
