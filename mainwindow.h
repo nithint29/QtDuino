@@ -50,6 +50,7 @@ private:
     bool isAvailable;
 
     QVector<double> qX,qY;
+    int mod(int a, int b);
 };
 
 #endif // MAINWINDOW_H

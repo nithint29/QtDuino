@@ -12,6 +12,11 @@
 #define SIGNPIN  7
 #define counterMode 'C'
 #define stepperMode 'S'
+#define motorPin1  8
+#define motorPin2  9
+#define motorPin3  10
+#define motorPin4  11
+int prevCoil = 0;
 
 //QSerialPort serial;
 MainWindow::MainWindow(QWidget *parent) :
@@ -55,6 +60,44 @@ MainWindow::MainWindow(QWidget *parent) :
           QMessageBox::warning(this,"Port error","No Arduino Attached");
       }
 
+
+      QFile file("storage.txt");
+          if(!file.exists())
+          {
+              QFile file;
+              file.setFileName("storage.txt");
+              file.open(QIODevice::ReadWrite | QIODevice::Text);
+              QTextStream stream(&file);
+              stream<<0;
+              stream<<"\n";
+              stream<<0;
+              qDebug()<<"New File created";
+              file.close();
+          }
+          else if (file.open(QIODevice::ReadOnly))
+          {
+             QTextStream in(&file);
+             while (!in.atEnd())
+             {
+                prevCoil = qAbs(in.readLine().toInt());
+                if(prevCoil>3 || prevCoil<0)
+                {
+                    qDebug()<<"Coil Number in text file is out of bounds";
+                    QMessageBox::warning(this,"Data Error","Coil Number in text file is out of bounds");
+                }
+                box[0] = in.readLine().toInt();
+                box[1] = in.readLine().toInt();
+                box[2] = in.readLine().toInt();
+
+             }
+             file.close();
+          }
+//          file.close();
+          ui->R1out->display(box[0]);
+          ui->R2out->display(box[1]);
+          ui->R3out->display(box[2]);
+
+
 //    serial.setPortName("COM1");
 //    serial.setBaudRate(QSerialPort::Baud9600);
 //    serial.setDataBits(QSerialPort::Data8);
@@ -77,6 +120,22 @@ MainWindow::~MainWindow()
     {
         arduino->close();
     }
+    QFile file("storage.txt");
+        if(file.exists())
+        {
+            file.open(QIODevice::ReadWrite | QIODevice::Text);
+            QTextStream stream(&file);
+            stream<<prevCoil;
+            stream<<"\n";
+            stream<<box[0];
+            stream<<"\n";
+            stream<<box[1];
+            stream<<"\n";
+            stream<<box[2];
+            stream<<"\n";
+            //qDebug()<<"written";
+            file.close();
+        }
     delete ui;
 }
 
@@ -85,6 +144,7 @@ void MainWindow::setValue(int currVal, int target, int pinNum)
     //int diff = target-currVal;
     QByteArray buffer =QByteArray::number(target-currVal) + "\n";
     buffer.prepend(QByteArray::number(pinNum)+",");
+    buffer.prepend(QByteArray::number(prevCoil)+",");
     buffer.prepend(stepperMode);
 
     if(arduino->isWritable())
@@ -94,9 +154,13 @@ void MainWindow::setValue(int currVal, int target, int pinNum)
         QByteArray serialData = arduino->readAll();
         QString temp = QString::fromStdString(serialData.toStdString());
         qDebug()<<temp;
+        prevCoil = mod((prevCoil+target-currVal),4);
+        qDebug()<<prevCoil;
     }
     else
     {
+//        prevCoil = mod((prevCoil+target-currVal),4);
+//        qDebug()<<prevCoil;
         qDebug()<<"Couldnt write to serial";
     }
 }
@@ -132,6 +196,11 @@ void MainWindow::on_setAllButton_clicked()
     on_R1Button_clicked();
     on_R2Button_clicked();
     on_R3Button_clicked();
+}
+int MainWindow::mod(int a, int b)
+{
+    int r = a % b;
+    return r < 0 ? r + b : r;
 }
 
 void MainWindow::delay(int ms)          //delay method (basically sleep)
