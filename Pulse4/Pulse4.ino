@@ -4,7 +4,7 @@
 #define r3Pin  6
 #define SIGNPIN  7
 
-#define pulseWidth  10
+#define pulseWidth  1000
 #define counterMode 'C'
 #define stepperMode 'S'
 #define pulseSender1  8
@@ -31,7 +31,7 @@ int motorPin1 = 8;
 int motorPin2 = 9;
 int motorPin3 = 10;
 int motorPin4 = 11;
-int delayTime = 3;
+int delayTime = 20;
 int b = 10000;                      //number of steps
 //int count = 0;
 //int upordown =1;               //to keep track which way we were moving in the previus command //1 is up, 2 is down - save in the text file
@@ -66,13 +66,17 @@ void loop()
     //String input = Serial.readString();
     mode = Serial.read();
     //currentCount = Serial.read();
+    
 
     if(mode == stepperMode)
     {
-      prevCoil = abs(Serial.parseInt());
+      prevCoil = Serial.parseInt();
+      
       pulsePin = Serial.parseInt(); //S: pulse pin
+      
       //digitalWrite(pulsePin,HIGH); // choose the right box
       in = Serial.parseInt();//S:number of pulses to send out
+      
       if(in != 0 && pulsePin <= 6 && pulsePin >= 4)
       {
         Serial.print("I received: ");
