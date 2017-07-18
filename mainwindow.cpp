@@ -16,6 +16,8 @@
 #define motorPin2  9
 #define motorPin3  10
 #define motorPin4  11
+
+#define pulseWidth 25
 int prevCoil = 0;
 
 //QSerialPort serial;
@@ -28,23 +30,53 @@ MainWindow::MainWindow(QWidget *parent) :
       isAvailable = false;
       portName = "";
       arduino = new QSerialPort;
-      qDebug() << "Number of available Ports:" << QSerialPortInfo::availablePorts().length();
 
-      foreach (const QSerialPortInfo &serialPortInfo, QSerialPortInfo::availablePorts()) {
-          qDebug() << "Has Vendor ID: "<< serialPortInfo.hasVendorIdentifier();
-          if(serialPortInfo.hasVendorIdentifier() && serialPortInfo.hasProductIdentifier())
+      QSerialPortInfo* info = new QSerialPortInfo;
+      QList<QSerialPortInfo> * PortList = new QList<QSerialPortInfo>;
+      *PortList = QSerialPortInfo::availablePorts();
+      qDebug() << "Number of available Ports:" << PortList->length();
+      //QMessageBox::warning(this,"Port Initialized","Arduino Attached");
+
+      foreach(*info, *PortList){
+          qDebug() << "Has Vendor ID: "<< info->hasVendorIdentifier();
+          if(info->hasVendorIdentifier() && info->hasProductIdentifier())
           {
-              if(serialPortInfo.vendorIdentifier() == unoVendorId)
+              //qDebug() << "vendor ID: "<<serialPortInfo.vendorIdentifier();
+              //qDebug() << "product ID: "<<serialPortInfo.productIdentifier();
+              if(info->vendorIdentifier() == unoVendorId)
               {
-                  if(serialPortInfo.productIdentifier() == unoProductId)
+                  if(info->productIdentifier() == unoProductId || info->productIdentifier() == unoProductId2)
                   {
-                      portName = serialPortInfo.portName();
+
+                      portName = info->portName();
                       isAvailable = true;
                   }
               }
 
           }
       }
+      delete info;
+//      qDebug() << "Number of available Ports:" << QSerialPortInfo::availablePorts().length();
+//      QMessageBox::warning(this,"Port Initialized","Arduino Attached");
+
+//      foreach (const QSerialPortInfo &serialPortInfo, QSerialPortInfo::availablePorts()) {
+//          qDebug() << "Has Vendor ID: "<< serialPortInfo.hasVendorIdentifier();
+//          if(serialPortInfo.hasVendorIdentifier() && serialPortInfo.hasProductIdentifier())
+//          {
+//              //qDebug() << "vendor ID: "<<serialPortInfo.vendorIdentifier();
+//              //qDebug() << "product ID: "<<serialPortInfo.productIdentifier();
+//              if(serialPortInfo.vendorIdentifier() == unoVendorId)
+//              {
+//                  if(serialPortInfo.productIdentifier() == unoProductId || serialPortInfo.productIdentifier() == unoProductId2)
+//                  {
+
+//                      portName = serialPortInfo.portName();
+//                      isAvailable = true;
+//                  }
+//              }
+
+//          }
+//      }
 
       if(isAvailable)
       {
@@ -61,7 +93,7 @@ MainWindow::MainWindow(QWidget *parent) :
       }
 
 
-      QFile file("storage.txt");
+      QFile file("storage.txt");       //Create or load the applications data file
           if(!file.exists())
           {
               QFile file;
@@ -120,7 +152,7 @@ MainWindow::~MainWindow()
     {
         arduino->close();
     }
-    QFile file("storage.txt");
+    QFile file("storage.txt");      //text file to store program/stepper data (previous coil of stepper 1 only)
         if(file.exists())
         {
             file.open(QIODevice::ReadWrite | QIODevice::Text);
@@ -139,54 +171,68 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::setValue(int currVal, int target, int pinNum)
+int MainWindow::setValue(int currVal, int target, int pinNum)
 {
+    int numSteps = target-currVal;
     //int diff = target-currVal;
-    QByteArray buffer =QByteArray::number(target-currVal) + "\n";
+    QByteArray buffer =QByteArray::number(numSteps) + "\n";
     buffer.prepend(QByteArray::number(pinNum)+",");
     buffer.prepend(QByteArray::number(prevCoil)+",");
     buffer.prepend(stepperMode);
 
     if(arduino->isWritable())
     {
-        arduino->write(buffer);
+        arduino->write(buffer);                            //send command
+        //QMessageBox::warning(this,"Port Initialized","Arduino Attached"); //ERROR HERE
         delay(300);                                      //to read serial data properly
-        QByteArray serialData = arduino->readAll();
+        QByteArray serialData = arduino->readLine(20);
         QString temp = QString::fromStdString(serialData.toStdString());
         qDebug()<<temp;
-        prevCoil = mod((prevCoil+target-currVal),4);
+
+        delay(1000+pulseWidth*abs(numSteps));                                    //look for stop pin response
+        QByteArray response = arduino->readLine(6);            //read number of actual steps taken
+        QString rSteps = (QString::fromStdString(response.toStdString()));
+        int realSteps = rSteps.toInt();
+        qDebug()<<realSteps;
+        if(realSteps != -1)     //if end of stepper is reached
+        {
+            qDebug()<<"End reached";
+            numSteps = realSteps;
+        }
+        prevCoil = mod((prevCoil+numSteps),4);
         qDebug()<<prevCoil;
+        return numSteps;
     }
     else
     {
 //        prevCoil = mod((prevCoil+target-currVal),4);
 //        qDebug()<<prevCoil;
         qDebug()<<"Couldnt write to serial";
+        return 0;
     }
 }
 
 void MainWindow::on_R1Button_clicked()
 {
-
     int setR1 =ui->R1in->toPlainText().toInt();
-    setValue(box[0],setR1,r1Pin);
-    box[0] = setR1;
+    int change = setValue(box[0],setR1,r1Pin);
+    box[0] = box[0]+change;
     ui->R1out->display(box[0]);
 }
 
 void MainWindow::on_R2Button_clicked()
 {
     int setR2 =ui->R2in->toPlainText().toInt();
-    setValue(box[1],setR2,r2Pin);
-    box[1] = setR2;
+    int change = setValue(box[1],setR2,r2Pin);
+    box[1] = box[1]+change;
     ui->R2out->display(box[1]);
 }
 
 void MainWindow::on_R3Button_clicked()
 {
     int setR3 =ui->R3in->toPlainText().toInt();
-    setValue(box[2],setR3,r3Pin);
-    box[2] = setR3;
+    int change = setValue(box[2],setR3,r3Pin);
+    box[2] = box[2]+change;
     ui->R3out->display(box[2]);
 }
 
@@ -261,7 +307,6 @@ void MainWindow::on_startCounter_clicked()      //only works for R1 right now an
         temp =QString::fromStdString(yData.toStdString());
         int y =temp.toInt();                                //y is the count data from open collector pulses
         qDebug()<<y;
-
         qX.append(x);
         qY.append(y);
         ui->customPlot->graph(0)->setData(qX,qY);

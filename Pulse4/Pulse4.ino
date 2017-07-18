@@ -4,15 +4,9 @@
 #define r3Pin  6
 #define SIGNPIN  7
 
-#define pulseWidth  1000
+#define pulseWidth  25
 #define counterMode 'C'
 #define stepperMode 'S'
-#define pulseSender1  8
-#define pulseSender2  9
-#define pulseSender3  10
-#define pulseSender4  11
-#define bPin 19
-#define onPin 3
 
 int box[3] = {0,0,0};
 int pulsePin = 4;
@@ -27,6 +21,11 @@ int points;
 int stepTime;  //in milli seconds
 int stepsPerPoint;
 
+//Pins and constants
+bool endReachedUp = false;
+bool endReachedDown = false;
+int stopPin1 = 14;  //for up
+int stopPin2 = 15;  //for down
 int motorPin1 = 8;
 int motorPin2 = 9;
 int motorPin3 = 10;
@@ -50,6 +49,8 @@ void setup()
   pinMode(motorPin2, OUTPUT);
   pinMode(motorPin3, OUTPUT);
   pinMode(motorPin4, OUTPUT);
+  pinMode(stopPin1,INPUT);
+  pinMode(stopPin2,INPUT);
   digitalWrite(motorPin1, LOW);
   digitalWrite(motorPin2, LOW);
   digitalWrite(motorPin3, LOW);
@@ -119,6 +120,8 @@ int mod(int a, int b)
 void pulse(int a) //send pulses to pulseSender
 {
   int temp = count;
+  endReachedUp = false;
+  endReachedDown = false;
    //Serial.println(a);
   //digitalWrite(pulsePin,HIGH);
   if(a<0)
@@ -126,6 +129,14 @@ void pulse(int a) //send pulses to pulseSender
     //digitalWrite(SIGNPIN,LOW);
     for(long i = 0;i>(a);i--)
     {
+      //Stop if one of the stop switches is high
+      if(digitalRead(stopPin2)==HIGH)
+      {
+        //Unsuccessfull termination: print actual number of steps taken
+        endReachedDown = true;
+        Serial.println(i);
+        break;
+      }
       int index = 8+(mod((i+prevCoil-1),4));
       digitalWrite(index,HIGH);
       //Serial.println(8+(i%4));
@@ -133,14 +144,28 @@ void pulse(int a) //send pulses to pulseSender
       delay(pulseWidth);
       digitalWrite(index,LOW);
     }
+    //Successfull termination
+    if(!endReachedDown)
+    {
+      Serial.println(-1);
+    }
     prevCoil = mod(-1*(prevCoil+a),4);
     
   }
+  
   else
   {
     //digitalWrite(SIGNPIN,HIGH);
     for(long i = 0;i<a;i++)
     {
+      //Stop if one of the stop switches is high
+      if(digitalRead(stopPin1)==HIGH)
+      {
+        //Unsuccessfull termination: print actual number of steps taken
+        endReachedUp = true;
+        Serial.println(i);
+        break;
+      }
       int index = 8+(mod((i+1+prevCoil),4));
       digitalWrite(index,HIGH);
       //Serial.println(8+(i%4));
@@ -148,7 +173,12 @@ void pulse(int a) //send pulses to pulseSender
       delay(pulseWidth);
       digitalWrite(index,LOW);
     }
-      prevCoil = mod((prevCoil+a),4);
+    //Successfull termination 
+   if(!endReachedUp)
+    {
+      Serial.println(-1);
+    }
+    prevCoil = mod((prevCoil+a),4);
   }
 
   count = temp;

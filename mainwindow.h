@@ -25,7 +25,7 @@ private slots:
     void on_R3Button_clicked();
 
     void on_setAllButton_clicked();
-    void setValue(int currVal, int target, int pinNum);
+    int setValue(int currVal, int target, int pinNum);
     void delay(int ms);
 
 
@@ -46,6 +46,7 @@ private:
     QSerialPort *arduino;
     static const quint16 unoVendorId = 9025;
     static const quint16 unoProductId = 1;
+    static const quint16 unoProductId2 = 67;
     QString portName;
     bool isAvailable;
 
