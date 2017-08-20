@@ -129,8 +129,8 @@ void pulse(int a) //send pulses to pulseSender
     //digitalWrite(SIGNPIN,LOW);
     for(long i = 0;i>(a);i--)
     {
-      //Stop if one of the stop switches is high
-      if(digitalRead(stopPin2)==HIGH)
+      //Stop if one of the stop switches is LOW
+      if(digitalRead(stopPin2)==LOW)
       {
         //Unsuccessfull termination: print actual number of steps taken
         endReachedDown = true;
@@ -158,8 +158,8 @@ void pulse(int a) //send pulses to pulseSender
     //digitalWrite(SIGNPIN,HIGH);
     for(long i = 0;i<a;i++)
     {
-      //Stop if one of the stop switches is high
-      if(digitalRead(stopPin1)==HIGH)
+      //Stop if one of the stop switches is LOW
+      if(digitalRead(stopPin1)==LOW)
       {
         //Unsuccessfull termination: print actual number of steps taken
         endReachedUp = true;

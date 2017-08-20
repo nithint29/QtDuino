@@ -26,6 +26,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
       ui->setupUi(this);
+      ui->progressBar->setTextVisible(false);
+      ui->progressBar_2->setTextVisible(false);
+      ui->progressBar_3->setTextVisible(false);
+      ui->progressBar_4->setTextVisible(false);
+      ui->progressBar_5->setTextVisible(false);
+      ui->progressBar_6->setTextVisible(false);
 
       isAvailable = false;
       portName = "";
@@ -152,6 +158,12 @@ MainWindow::~MainWindow()
     {
         arduino->close();
     }
+    saveToFile();
+    delete ui;
+}
+
+void MainWindow::saveToFile()
+{
     QFile file("storage.txt");      //text file to store program/stepper data (previous coil of stepper 1 only)
         if(file.exists())
         {
@@ -168,12 +180,12 @@ MainWindow::~MainWindow()
             //qDebug()<<"written";
             file.close();
         }
-    delete ui;
 }
 
 int MainWindow::setValue(int currVal, int target, int pinNum)
 {
     int numSteps = target-currVal;
+    bool pos = numSteps>=0;
     //int diff = target-currVal;
     QByteArray buffer =QByteArray::number(numSteps) + "\n";
     buffer.prepend(QByteArray::number(pinNum)+",");
@@ -194,13 +206,60 @@ int MainWindow::setValue(int currVal, int target, int pinNum)
         QString rSteps = (QString::fromStdString(response.toStdString()));
         int realSteps = rSteps.toInt();
         qDebug()<<realSteps;
-        if(realSteps != -1)     //if end of stepper is reached
+        if(realSteps != -1)     //if end of stepper is reached (a switch was triggered)
         {
             qDebug()<<"End reached";
             numSteps = realSteps;
         }
         prevCoil = mod((prevCoil+numSteps),4);
         qDebug()<<prevCoil;
+
+        //update switch status bars
+        switch(pinNum)
+        {
+        case r1Pin:
+                if(pos)
+                {
+                    if(realSteps==-1){ui->progressBar->setValue(0);}
+                    else{ui->progressBar->setValue(100);}
+                    //Other switch should now be off
+                    ui->progressBar_2->setValue(0);
+                }
+                else{
+                    if(realSteps==-1){ui->progressBar_2->setValue(0);}
+                    else{ui->progressBar_2->setValue(100);}
+                    ui->progressBar->setValue(0);
+                }
+            break;
+        case r2Pin:
+                if(pos)
+                {
+                    if(realSteps==-1){ui->progressBar_3->setValue(0);}
+                    else{ui->progressBar_3->setValue(100);}
+                    ui->progressBar_4->setValue(0);
+                }
+                else{
+                    if(realSteps==-1){ui->progressBar_4->setValue(0);}
+                    else{ui->progressBar_4->setValue(100);}
+                    ui->progressBar_3->setValue(0);
+                }
+            break;
+        case r3Pin:
+                if(pos)
+                {
+                    if(realSteps==-1){ui->progressBar_5->setValue(0);}
+                    else{ui->progressBar_5->setValue(100);}
+                    ui->progressBar_6->setValue(0);
+                }
+                else{
+                    if(realSteps==-1){ui->progressBar_6->setValue(0);}
+                    else{ui->progressBar_6->setValue(100);}
+                    ui->progressBar_5->setValue(0);
+                }
+        break;
+
+        }
+
         return numSteps;
     }
     else
@@ -218,6 +277,8 @@ void MainWindow::on_R1Button_clicked()
     int change = setValue(box[0],setR1,r1Pin);
     box[0] = box[0]+change;
     ui->R1out->display(box[0]);
+    //update text file
+    saveToFile();
 }
 
 void MainWindow::on_R2Button_clicked()
@@ -226,6 +287,7 @@ void MainWindow::on_R2Button_clicked()
     int change = setValue(box[1],setR2,r2Pin);
     box[1] = box[1]+change;
     ui->R2out->display(box[1]);
+    saveToFile();
 }
 
 void MainWindow::on_R3Button_clicked()
@@ -234,6 +296,7 @@ void MainWindow::on_R3Button_clicked()
     int change = setValue(box[2],setR3,r3Pin);
     box[2] = box[2]+change;
     ui->R3out->display(box[2]);
+    saveToFile();
 }
 
 

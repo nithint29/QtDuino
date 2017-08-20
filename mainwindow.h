@@ -16,6 +16,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     int box[3] = {0,0,0};
+    //bool switches[6] = {false,false,false,false,false,false};
 
 private slots:
     void on_R1Button_clicked();
@@ -27,6 +28,8 @@ private slots:
     void on_setAllButton_clicked();
     int setValue(int currVal, int target, int pinNum);
     void delay(int ms);
+
+    void saveToFile();
 
 
   //  void ClearScreen(void);
